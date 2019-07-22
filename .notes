@@ -1,0 +1,25 @@
+attempt to rewrite the check max prefix using a single dictionary
+
+
+data structure: dictionary K:V, ASN: networkdetails (a dictionary)
+networkdetails keys and data definitions:
+		v4groupname - name of the v4 group from Junos config (needed for display & to generate set commands)
+		v6groupname - name of the v5 group from Junos config (needed for display & to generate set commands)
+		v4configmax - currently configured maximum number of prefixes to accept for the v4 neighbor
+		v6configmax - currently configured maximum number of prefixes to accept for the v6 neighbor
+		v4pdb - number of v4 prefixes network has listed in peering DB
+		v6pdb - number of v6 prefixes network has listed in peering DB
+		v4multiplier - multiplier for v4 prefixes - we're adding headroom to what is in peeringDB
+		v6multiplier - multiplier for v6 prefixes - we're adding headroom to whatis in peeringDB
+		v4newconfig - the number of max v4 prefixes to be configured, if it is different that current config
+		v6newconfig - the number of max v6 prefixes to be configured, if it is different that current config
+		v4reconfig - string indicating if reconfiguration is necessary, three values: YES, no, YES - EXCEPTION*
+		v6reconfig - string indicating if reconfiguration is necessary, three values: YES, no, YES - EXCEPTION*
+
+* YES means that what we've learned from peeringDB + some headroom is MORE than what is currently configured.  reconfiguration necessary
+  NO means current configuration matches pDB + overhead
+  YES - EXCEPTION means that the network is advertising more prefixes via
+
+BGP than is currently listed on pDB; we have therefore manually configured
+the router to a higher value would normally be expected if we just used the
+info in pdb
