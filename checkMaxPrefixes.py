@@ -8,12 +8,13 @@ and compares it to what is in peeringDB, adding some headroom.
 It is intended to run via cron and generate some output, currently, two files (one per protocol family) of Junos
 set commands to update the router with new max prefixes.
 
-It can also be run 'adhoc' which will generate a table of peers that require reconfiguration (default)
-To see a list of all peers, use the '-s' flag (to disable suppression of matching maximums)
+It can also be run 'adhoc' which will also generate a table of peers that require reconfiguration (default)
+To see a list of all peers, use the '-s' flag (to disable suppression of networks that do not require reconfiguration)
 
 The data structure used throughout this script is a dictionary of dictionaries.  The outer key is ASN, which is
 unique an authoritative.  The inner dictionary is a set of key-value pairs related to the network.  As not all
-peers have both protocols configured, it is possible that some networks wont have all entry.
+peers have both protocols configured, it is possible that some networks wont have all keys.
+
 The fields of the inner dictionary are described here:
             v4groupname - name of the v4 group from Junos config (needed for display & to generate set commands)
             v6groupname - name of the v5 group from Junos config (needed for display & to generate set commands)
@@ -22,7 +23,7 @@ The fields of the inner dictionary are described here:
             pdbmax4 - number of v4 prefixes network has listed in peering DB
             pdbmax6 - number of v6 prefixes network has listed in peering DB
             multiplierv4 - multiplier for v4 prefixes - we're adding headroom to what is in peeringDB
-            multiplierv6 - multiplier for v6 prefixes - we're adding headroom to whatis in peeringDB
+            multiplierv6 - multiplier for v6 prefixes - we're adding headroom to what is in peeringDB
             headroomv4 - the number of max v4 prefixes to be configured, if it is different that current config
             headroomv6 - the number of max v6 prefixes to be configured, if it is different that current config
             v4status - string indicating if reconfiguration is necessary, three values: see below
