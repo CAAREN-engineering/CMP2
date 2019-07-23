@@ -1,10 +1,10 @@
 ## Check maximum prefixes
 
-This script will quqery a Juniper router and compare what is configured for a BGP peer's maximum prefix and compare it to what is in [PeeringDB](https://www.peeringdb.com)
+This script will quqery a Juniper router and compare what is configured for a BGP peer's maximum prefix and to what is in [PeeringDB](https://www.peeringdb.com)
 
 Only peers with `family inet[6] unicast prefix-limit maximum` are checked.  If a peer does not already have a maximum number of prefixes configured, it will not be checked.
 
-This script will add headroom to what is listed in the PeeringDB.  The about of headroom is a sliding scale to allow network advertising a low number of routes some additional headroom.
+This script will add headroom to what is listed in the PeeringDB.  The amount of headroom is a sliding scale to allow network advertising a low number of routes some more headroom.
 
 The logic is that using a straight percentage wouldn't be useful since the number of routes advertised varies by several orders of magnitude.
 
@@ -20,11 +20,15 @@ So, a network that lists 10 routes in peeringDB will result in a multiplier of 1
 10 * 1.4 = 14.
 We will configure 14 routes as the maximum number to accept from this peer.
 
+A network listing 10,000 routes in peeringDB will results in a multiplier of 1.1
+10000 * 1.1 = 11000
+We will configure 11000 routes as the maximum number to accept from this peer.
+
 Generally, networks already add headroom to what they document in peeringDB, however, we're adding some additional headroom because this script also adds the teardown option.
 
 ### Teardown
 
-Configuring just a `unicast prefix-limit maximum` will cause the router to log when the threshold is exceeded, however no action is taken.
+Configuring only `unicast prefix-limit maximum` will cause the router to log when the threshold is exceeded, however no action is taken.
 
 This script additionally adds the teardown directive which will hard reset the session and send a message to the peer:
 `[code 6 (Cease) subcode 1 (Maximum Number of Prefixes Reached)]`
@@ -55,11 +59,11 @@ Once we receive 50 or more prefixes, we'll teardown the BGP session.
 ## Using the Script
 
 This script can be run via cron or on-demand.  In either case, it generates a list of set commands (one per protocol family) to be used to make changes to the router.
-Directly reconfiguring the router via the netconf API is not performed because, while useful, data from the peeringDB is helpful, it is untrusted.
+Directly reconfiguring the router via the netconf API is not performed because, while useful, data from the peeringDB is untrusted.
 
 When run ad-hoc, it will produce a table showing what needs to be reconfigured:
 
-** There are situations where a network does not keep up it's peeringDB entry and advertises more prefixes that we expect.  In that case, assuming the number of received prefixes is reasonable, we've manually configured the session to something *higher* that what is in the peerinDB.  In this case, it will be listed in the 'exception' table.
+** There are situations where a network does not keep up it's peeringDB entry and advertises more prefixes via BGP than we expect.  In that case, assuming the number of received prefixes is reasonable, we've manually configured the session to something *higher* that what is in the peerinDB.  This network will be listed in the 'exception' table.
 Networks in this category will not have set commands generated so we wont reconfigured the router to the lower, bogus, number.
 
 
