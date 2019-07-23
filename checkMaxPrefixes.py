@@ -223,6 +223,51 @@ def createTable(masterdict, suppress):
     return
 
 
+def generateSetCommands(masterdict):
+    """
+    generate the Junos set commands necessary to update config to match what is in peeringDB plus headroom
+    because configuration is based on group name, we need to access 'bgpstanza' again
+    two set commands are generated for each group - maximum number of prefixes and teardown
+    teardown is a percent at which the router will start logging messages indicating the peer is approaching the maximum
+    once a peer has reached the maximum configured prefixes, the teardown option will instruct the router to hard reset
+    the session with the following sent to the peer: [code 6 (Cease) subcode 1 (Maximum Number of Prefixes Reached)]
+    :param masterdict
+    :return: nothing- write commands to file
+    """
+    v4commands = []
+    v6commands = []
+    for entry in masterdict:
+        if 'v4configmax' in masterdict[entry]:
+            if masterdict[entry]['v4status'] == 'MISMATCH - RECONFIGURE':
+                groupname = masterdict[entry]['v4groupname']
+                newpfxlimit = masterdict[entry]['headroomv4']
+                maxcommand = "set protocols bgp group {} family inet unicast prefix-limit maximum {}".format(groupname,
+                                                                                                             newpfxlimit)
+                teardowncommand = "set protocols bgp group {} family inet unicast prefix-limit teardown 80".format(
+                    groupname)
+                v4commands.append(maxcommand)
+                v4commands.append(teardowncommand)
+        if 'v6configmax' in masterdict[entry]:
+            if masterdict[entry]['v6status'] == 'MISMATCH - RECONFIGURE':
+                groupname = masterdict[entry]['v6groupname']
+                newpfxlimit = masterdict[entry]['headroomv4']
+                maxcommand = "set protocols bgp group {} family inet6 unicast prefix-limit maximum {}".format(groupname,
+                                                                                                              newpfxlimit)
+                teardowncommand = "set protocols bgp group {} family inet6 unicast prefix-limit teardown 80".format(
+                    groupname)
+                v6commands.append(maxcommand)
+                v6commands.append(teardowncommand)
+    if len(v4commands) > 0:
+        with open('v4commands.txt', 'w') as f:
+            f.write('\n'.join(v4commands))
+            print("changes to v4 peers.  see v4commands.txt")
+    if len(v6commands) > 0:
+        with open('v6commands.txt', 'w') as f:
+            f.write('\n'.join(v6commands))
+            print("changes to v6 peers.  see v6commands.txt")
+    return
+
+
 def main():
     bgpstanza = GetConfig(rtrdict, username, path2keyfile)
     masterdict = ConfiguredPeers(bgpstanza)
@@ -230,7 +275,7 @@ def main():
     findMismatch(masterdict)
     if adhoc:
         createTable(masterdict, suppress)
-    generateSetCommands(v4results, v6results, bgpstanza)
+    generateSetCommands(masterdict)
 
 
 main()
