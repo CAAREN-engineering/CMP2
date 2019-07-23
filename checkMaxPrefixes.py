@@ -8,7 +8,35 @@ and compares it to what is in peeringDB, adding some headroom.
 It is intended to run via cron and generate some output, currently, two files (one per protocol family) of Junos
 set commands to update the router with new max prefixes.
 
-It can also be run 'adhoc' which will generate a table of all peers and display configured max prefixes vs peeringDB
+It can also be run 'adhoc' which will generate a table of peers that require reconfiguration (default)
+To see a list of all peers, use the '-s' flag (to disable suppression of matching maximums)
+
+The data structure used throughout this script is a dictionary of dictionaries.  The outer key is ASN, which is
+unique an authoritative.  The inner dictionary is a set of key-value pairs related to the network.  As not all
+peers have both protocols configured, it is possible that some networks wont have all entry.
+The fields of the inner dictionary are described here:
+            v4groupname - name of the v4 group from Junos config (needed for display & to generate set commands)
+            v6groupname - name of the v5 group from Junos config (needed for display & to generate set commands)
+            v4configmax - currently configured maximum number of prefixes to accept for the v4 neighbor
+            v6configmax - currently configured maximum number of prefixes to accept for the v6 neighbor
+            pdbmax4 - number of v4 prefixes network has listed in peering DB
+            pdbmax6 - number of v6 prefixes network has listed in peering DB
+            multiplierv4 - multiplier for v4 prefixes - we're adding headroom to what is in peeringDB
+            multiplierv6 - multiplier for v6 prefixes - we're adding headroom to whatis in peeringDB
+            headroomv4 - the number of max v4 prefixes to be configured, if it is different that current config
+            headroomv6 - the number of max v6 prefixes to be configured, if it is different that current config
+            v4status - string indicating if reconfiguration is necessary, three values: see below
+            v6status - string indicating if reconfiguration is necessary, three values: see below
+
+        values for status field:
+            MISMATCH - RECONFIGURE - pdb (+ headroom) is higher that what is configured.  change needed
+            MISMATCH - EXCEPTION - our network is configured with a *higher* number of prefixes that what is listed in
+                                    pdb (+headroom).  This happens when a peer doesn't update it's peeringDB entry
+                                    and we have manually configured our network with a value to avoid tripping the
+                                    max prefix limit
+            MATCH - no change is needed
+
+
 """
 
 from argparse import ArgumentParser
@@ -61,7 +89,7 @@ def ConfiguredPeers(bgpconfig):
     """
     take the BGP config in JSON format and extract
     peer AS, max v4 prefixes, max v6 prefixes
-    ASN is both authoritative an unique and is used as a key to search peeringDB
+    ASN is both authoritative an unique and is will be used to search peeringDB
     :param bgpconfig:
     :return: masterdict (K:V = ASN:{network details})
     """
@@ -96,9 +124,9 @@ def AddHeadroom(prefixcount):
     For networks telling us to expect > 100,000 prefixes, this will result in no additional overhead.  This shouldn't
     be a problem, as there is only one network with  > 100k routes as max in peeringDB that we peer with.
     Also, there is already headroom built into what networks enter into peeringDB
-    math.ceil (round UP to nearest integer) is used rather than convert floats to ints (which simply truncates (usually)
+    math.ceil round UP to nearest integer) is used rather than convert floats to ints, which usually just truncates
     :param prefixcount:
-    :return: GWmax (a string)
+    :return: GWMax (the value we should have configured on the router), multiplier (what we used to get this value)
     """
     multiplier = (6 - len(str(prefixcount))) / 10 + 1
     GWMax = math.ceil(int(prefixcount) * multiplier)
@@ -131,7 +159,7 @@ def GetPeeringDBData(masterdict):
 
 def findMismatch(masterdict):
     """
-    compare data from peeringDB & what is configured; note mismatches
+    compare data from peeringDB (+ headroom) & what is configured; note mismatches
     in the event we have a peer configured with a larger maximum than is included in peeringDB, note this as an
     exception.  This is a situation where a network isn't keeping their peeringDB entry up to date and we have to
     manually configured max prefixes with something that wont cause errors or teardowns.
@@ -149,7 +177,7 @@ def findMismatch(masterdict):
             if int(masterdict[ASN]['v4configmax']) == masterdict[ASN]['headroomv4']:
                 masterdict[ASN]['v4status'] = 'MATCH'
             elif int(masterdict[ASN]['v4configmax']) < masterdict[ASN]['headroomv4']:
-                masterdict[ASN]['v4status'] = 'MISMATCH - RECONFIGURE'
+                masterdict[ASN]['v4status'] = 'see below'
             else:
                 masterdict[ASN]['v4status'] = 'MISMATCH - EXCEPTION'
         if 'v6configmax' in masterdict[ASN]:
@@ -226,7 +254,6 @@ def createTable(masterdict, suppress):
 def generateSetCommands(masterdict):
     """
     generate the Junos set commands necessary to update config to match what is in peeringDB plus headroom
-    because configuration is based on group name, we need to access 'bgpstanza' again
     two set commands are generated for each group - maximum number of prefixes and teardown
     teardown is a percent at which the router will start logging messages indicating the peer is approaching the maximum
     once a peer has reached the maximum configured prefixes, the teardown option will instruct the router to hard reset
