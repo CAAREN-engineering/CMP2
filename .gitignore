@@ -109,3 +109,6 @@ venv.bak/
 .notes.txt
 creds.py
 .idea/workspace.xml
+v4commands.txt
+v6commands.txt
+.idea/vcs.xml
