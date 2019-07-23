@@ -66,4 +66,17 @@ When run ad-hoc, it will produce a table showing what needs to be reconfigured:
 ** There are situations where a network does not keep up it's peeringDB entry and advertises more prefixes via BGP than we expect.  In that case, assuming the number of received prefixes is reasonable, we've manually configured the session to something *higher* that what is in the peerinDB.  This network will be listed in the 'exception' table.
 Networks in this category will not have set commands generated so we wont reconfigured the router to the lower, bogus, number.
 
+An example of the table generate in ad-hoc mode
+```
+v4 results
++--------+-------------------+--------+------------+---------+------------------------+
+|  ASN   | v4 current config | v4pDB  | multiplier | new max |       Mismatch?        |
++--------+-------------------+--------+------------+---------+------------------------+
+| 65501  |         10        |   16   |    1.4     |    23   | MISMATCH - RECONFIGURE |
+| 65502  |         90        |  100   |    1.3     |   130   | MISMATCH - RECONFIGURE |
+| 65503  |        900        |  1000  |    1.2     |   1200  | MISMATCH - RECONFIGURE |
+| 65504  |         40        |   50   |    1.4     |    70   | MISMATCH - RECONFIGURE |
+| 65505  |       169000      | 169000 |    1.0     |  169000 |         MATCH          |
++--------+-------------------+--------+------------+---------+------------------------+
+```
 
