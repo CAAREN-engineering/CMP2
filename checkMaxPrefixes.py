@@ -146,27 +146,26 @@ def findMismatch(masterdict):
     """
     for ASN in masterdict:
         if 'v4configmax' in masterdict[ASN]:
-            if int(masterdict[ASN]['v4configmax']) == (masterdict[ASN]['pdbmax4']):
+            if int(masterdict[ASN]['v4configmax']) == masterdict[ASN]['headroomv4']:
                 masterdict[ASN]['v4status'] = 'MATCH'
-            elif int(masterdict[ASN]['v4configmax']) < int(masterdict[ASN]['pdbmax4']):
+            elif int(masterdict[ASN]['v4configmax']) < masterdict[ASN]['headroomv4']:
                 masterdict[ASN]['v4status'] = 'MISMATCH - RECONFIGURE'
             else:
                 masterdict[ASN]['v4status'] = 'MISMATCH - EXCEPTION'
         if 'v6configmax' in masterdict[ASN]:
-            if int(masterdict[ASN]['v6configmax']) == (masterdict[ASN]['pdbmax6']):
+            if int(masterdict[ASN]['v6configmax']) == masterdict[ASN]['headroomv6']:
                 masterdict[ASN]['v6status'] = 'MATCH'
-            elif int(masterdict[ASN]['v6configmax']) < int(masterdict[ASN]['pdbmax6']):
+            elif int(masterdict[ASN]['v6configmax']) < masterdict[ASN]['headroomv6']:
                 masterdict[ASN]['v6status'] = 'MISMATCH - RECONFIGURE'
             else:
                 masterdict[ASN]['v6status'] = 'MISMATCH - EXCEPTION'
     return
 
 
-def createTable(v4results, v6results, suppress):
+def createTable(masterdict, suppress):
     """
     Create a pretty table
-    :param v4results (list of dictionaries)
-    :param v6results (list of dictionaries)
+    :param masterdict
     :param suppress (suppress entries with no mismatch?  BOOL, True set default in argparse config)
     :return: nothing!  print to STDOUT
     """
@@ -177,30 +176,38 @@ def createTable(v4results, v6results, suppress):
     exceptionv4.print_empty = False
     exceptionv6.print_empty = False
     exceptionExists = False
-    for entry in v4results:
-        if not suppress:
-            Tablev4.add_row(
-                [entry['ASN'], entry['configMax4'], entry['pdbprefixes'], entry['multiplier'], entry['prefixes'],
-                 entry['mismatch']])
-        elif entry['mismatch'] == "YES - reconfig":
-            Tablev4.add_row(
-                [entry['ASN'], entry['configMax4'], entry['pdbprefixes'], entry['multiplier'], entry['prefixes'],
-                 entry['mismatch']])
-        elif entry['mismatch'] == "YES - exception":
-            exceptionv4.add_row([entry['ASN'], entry['configMax4'], entry['prefixes']])
-            exceptionExists = True
-    for entry in v6results:
-        if not suppress:
-            Tablev6.add_row(
-                [entry['ASN'], entry['configMax6'], entry['pdbprefixes'], entry['multiplier'], entry['prefixes'],
-                 entry['mismatch']])
-        elif entry['mismatch'] == "YES - reconfig":
-            Tablev6.add_row(
-                [entry['ASN'], entry['configMax6'], entry['pdbprefixes'], entry['multiplier'], entry['prefixes'],
-                 entry['mismatch']])
-        elif entry['mismatch'] == "YES - exception":
-            exceptionv6.add_row([entry['ASN'], entry['configMax6'], entry['prefixes']])
-            exceptionExists = True
+    for entry in masterdict:
+        if 'v4configmax' in masterdict[entry]:
+            if not suppress:
+                Tablev4.add_row(
+                    [entry, masterdict[entry]['v4configmax'], masterdict[entry]['pdbmax4'],
+                    masterdict[entry]['multiplierv4'], masterdict[entry]['headroomv4'],
+                    masterdict[entry]['v4status']])
+            elif entry['v4status'] == "YES - reconfig":
+                Tablev4.add_row(
+                    [entry, masterdict[entry]['v4configmax'], masterdict[entry]['pdbmax4'],
+                    masterdict[entry]['multiplierv4'], masterdict[entry]['headroomv4'],
+                    masterdict[entry]['v4status']])
+            elif entry['v4status'] == "YES - exception":
+                exceptionv4.add_row([entry, masterdict[entry]['v4configmax'], masterdict[entry]['pdbmax4'],
+                                     masterdict[entry]['multiplierv4'], masterdict[entry]['headroomv4']])
+                exceptionExists = True
+    for entry in masterdict:
+        if 'v6configmax' in masterdict[entry]:
+            if not suppress:
+                Tablev6.add_row(
+                    [entry, masterdict[entry]['v6configmax'], masterdict[entry]['pdbmax6'],
+                    masterdict[entry]['multiplierv6'], masterdict[entry]['headroomv6'],
+                    masterdict[entry]['v6status']])
+            elif entry['v6status'] == "YES - reconfig":
+                Tablev6.add_row(
+                    [entry, masterdict[entry]['v6configmax'], masterdict[entry]['pdbmax6'],
+                    masterdict[entry]['multiplierv6'], masterdict[entry]['headroomv6'],
+                    masterdict[entry]['v6status']])
+            elif entry['v6status'] == "YES - exception":
+                exceptionv6.add_row([entry, masterdict[entry]['v6configmax'], masterdict[entry]['pdbmax6'],
+                                     masterdict[entry]['multiplierv6'], masterdict[entry]['headroomv6']])
+                exceptionExists = True
     print("v4 results")
     print(Tablev4)
     print("\n\n\n")
@@ -222,7 +229,7 @@ def main():
     GetPeeringDBData(masterdict)
     findMismatch(masterdict)
     if adhoc:
-        createTable(v4results, v6results, suppress)
+        createTable(masterdict, suppress)
     generateSetCommands(v4results, v6results, bgpstanza)
 
 
