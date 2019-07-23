@@ -1,0 +1,9 @@
+# variables for importing into Juniper PyEZ scripts
+# There are three variable:
+# 1. rtrdict- a dictionary of routers to access.  Key = router name, value = IP address
+# 2. username- username used to log into router
+# 3. path2keyfile- path to the private key used to authenticate
+
+rtrdict = {'MyAwesomeRouter': 'IPaddr'}
+username = 'usernamewithROprivs'
+path2keyfile = '/path/to/.ssh/private-key'
