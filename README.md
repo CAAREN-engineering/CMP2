@@ -35,8 +35,9 @@ This script additionally adds the teardown directive which will hard reset the s
 
 Because we are now taking disruptive action, additional headroom over and above what is (probably) already in the peeringDB is added.
 
-#### A note on syntax:
-Confusingly, the teardeown configuration is a percentage of the maximum number of prefixes at which the router will start logging.
+#### A note on Junos syntax:
+Confusingly, the teardeown configuration is not a prefix count at which the router will teardown the BGP session.
+Rather, it is a percentage of the maximum number of prefixes at which the router will start logging.
 
 For example:
 ```
