@@ -36,6 +36,22 @@ The fields of the inner dictionary are described here:
                                     and we have manually configured our network with a value to avoid tripping the
                                     max prefix limit
             MATCH - no change is needed
+
+A sample entry in masterdict might look like:
+{'65501':
+    {'headroomv4': 4800,
+     'headroomv6': 260,
+     'multiplierv4': 1.2,
+     'multiplierv6': 1.3,
+     'pdbmax4': 4000,
+     'pdbmax6': 200,
+     'v4configmax': '4000',
+     'v4groupname': 'Qatar_v4',
+     'v4status': 'see below',
+     'v6configmax': '200',
+     'v6groupname': 'Qatar_v6',
+     'v6status': 'MISMATCH - RECONFIGURE'}}
+
 """
 
 
@@ -177,7 +193,7 @@ def findMismatch(masterdict):
             if int(masterdict[ASN]['v4configmax']) == masterdict[ASN]['headroomv4']:
                 masterdict[ASN]['v4status'] = 'MATCH'
             elif int(masterdict[ASN]['v4configmax']) < masterdict[ASN]['headroomv4']:
-                masterdict[ASN]['v4status'] = 'see below'
+                masterdict[ASN]['v4status'] = 'MISMATCH - RECONFIGURE'
             else:
                 masterdict[ASN]['v4status'] = 'MISMATCH - EXCEPTION'
         if 'v6configmax' in masterdict[ASN]:
